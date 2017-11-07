@@ -1,0 +1,75 @@
+# Reproducible Research - Project 1
+
+```{r}
+library(tidyverse)
+```
+
+**1. Loading data **  
+```{r, cahe = TRUE}
+data_raw <- read_csv("activity.csv")
+```
+
+
+**2. Plotting a histogram of daily number of steps**
+```{r}
+
+
+daily <- data_raw %>%
+  group_by(date) %>%
+  summarise(daily_steps = sum(steps, na.rm = TRUE))
+
+ggplot(daily) + geom_histogram(aes(daily_steps), fill = "darkred", binwidth = 1000) + 
+  ggtitle("Distribution of daily number of steps") + xlab("Daily steps")
+```
+
+
+**3. Calculating mean and median of daily number of steps**  
+Mean value of daily steps equaled to **`r round(mean(daily$daily_steps, na.rm = TRUE))`** and median equaled to **`r median(daily$daily_steps, na.rm = TRUE)`**.
+
+**4. Plotting time series of average steps taken per given 5 minute interval**
+```{r}
+ts <- data_raw %>%
+  group_by(interval) %>%
+  summarise(mean_steps = mean(steps, na.rm = TRUE))
+
+ggplot(ts) + geom_line(aes(interval, mean_steps, group = 1), col = "darkred", lwd = 1) +
+  ggtitle("Average number of steps made per subsequent 5-minute intervals") + xlab("Interval") + 
+  ylab("Mean number of steps") 
+```
+
+**5. Indicating a 5-minute interval with maximum average number of steps**
+```{r}
+max_steps <- filter(ts, mean_steps == max(mean_steps))
+```
+The interval with the maximum average number of daily steps was interval **`r max_steps$interval`**.
+
+**6. Replacing NAs with 5-minute interval mean**  
+The number of NAs in this dataset is `r sum(is.na(data_raw))`. They are replaced with mean number of steps per 5-minute interval.
+``` {r}
+data_imp <- data_raw %>%
+  mutate(steps = ifelse(is.na(steps), mean(steps, na.rm = TRUE), steps))
+```
+
+**7. Plotting a histogram of daily number of steps after imputation**  
+```{r}
+daily_imp <- data_imp %>%
+  group_by(date) %>%
+  summarise(daily_steps = sum(steps))
+
+ggplot(daily_imp) + geom_histogram(aes(daily_steps), fill = "darkred", binwidth = 1000) + 
+  ggtitle("Distribution of daily number of steps after imputation") + xlab("Daily steps")  
+```  
+
+After the imputation the mean value equaled to **`r round(mean(daily_imp$daily_steps))`** and the median was **`r median(daily_imp$daily_steps)`**. Due to imputation the values are higher.
+
+**8. Inspecting distributions of activity during weekdays and weekends**
+```{r}
+act_comparison <- data_imp %>%
+  mutate(day_type = ifelse(weekdays(date) %in% c("sobota", "niedziela"), "weekend", "weekday")) %>%
+  group_by(day_type, interval) %>%
+  summarise(mean_steps = mean(steps, na.rm = TRUE))
+
+ggplot(act_comparison) + geom_line(aes(interval, mean_steps, group = 1), col = "darkred", lwd = 1) +
+  facet_wrap(~day_type, ncol = 1) + ggtitle("Activity during weekdays and weekends - comparison") + xlab("Interval") + 
+  ylab("Mean number of steps") 
+```
